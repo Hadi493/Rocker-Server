@@ -20,7 +20,7 @@ struct User {
 // Route handlers
 #[get("/")]
 fn index() -> &'static str {
-    "Hello, welcome to Rocket API!"
+    "Hello, welcome to Rocket API! it's my first Rocket server"
 }
 
 #[get("/user/<id>")]
