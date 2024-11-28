@@ -6,7 +6,8 @@ This is a simple rocket server. It uses the Rocket framework for Rust.
 
 1. Clone the repository
 2. Install Rust and Cargo with `rustup`
-3. Build and run the server with `cargo run`
+3. Run `cargo install cargo-watch`
+4. Build and run the server with `cargo watch -x run`
 
 ## Endpoints
 
