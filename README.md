@@ -1,4 +1,4 @@
-# Project Name
+# Rocket Server
 
 This is a simple rocket server. It uses the Rocket framework for Rust.
 
