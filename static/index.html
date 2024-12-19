@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rust Social Media</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Rust Social Media</h1>
+            <div id="auth-section">
+                <div id="login-form" class="auth-form">
+                    <h2>Login</h2>
+                    <input type="text" id="login-username" placeholder="Username">
+                    <input type="password" id="login-password" placeholder="Password">
+                    <button onclick="login()">Login</button>
+                </div>
+                <div id="register-form" class="auth-form">
+                    <h2>Register</h2>
+                    <input type="text" id="register-username" placeholder="Username">
+                    <input type="password" id="register-password" placeholder="Password">
+                    <button onclick="register()">Register</button>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <section id="create-post">
+                <h2>Create Post</h2>
+                <textarea id="post-content" placeholder="What's on your mind?"></textarea>
+                <button onclick="createPost()">Post</button>
+            </section>
+
+            <section id="posts">
+                <h2>Posts</h2>
+                <div id="posts-container"></div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // User Authentication
+        async function register() {
+            const username = document.getElementById('register-username').value;
+            const password = document.getElementById('register-password').value;
+
+            try {
+                const response = await fetch('/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password }),
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    alert('Registration successful!');
+                } else {
+                    alert('Registration failed: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error: ' + error);
+            }
+        }
+
+        async function login() {
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password }),
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    alert('Login successful!');
+                    // Store user info and update UI
+                    localStorage.setItem('user_id', data.id);
+                    updateUI(true);
+                } else {
+                    alert('Login failed: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error: ' + error);
+            }
+        }
+
+        // Posts
+        async function createPost() {
+            const content = document.getElementById('post-content').value;
+            const userId = localStorage.getItem('user_id');
+
+            if (!userId) {
+                alert('Please login first');
+                return;
+            }
+
+            try {
+                const response = await fetch('/posts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: parseInt(userId),
+                        content: content
+                    }),
+                });
+                if (response.ok) {
+                    document.getElementById('post-content').value = '';
+                    loadPosts();
+                }
+            } catch (error) {
+                alert('Error creating post: ' + error);
+            }
+        }
+
+        async function loadPosts() {
+            try {
+                const response = await fetch('/posts');
+                const posts = await response.json();
+                const container = document.getElementById('posts-container');
+                container.innerHTML = '';
+                
+                posts.forEach(post => {
+                    const postElement = document.createElement('div');
+                    postElement.className = 'post';
+                    postElement.innerHTML = `
+                        <p class="post-content">${post.content}</p>
+                        <div class="post-footer">
+                            <span>Posted by User ${post.user_id}</span>
+                            <button onclick="showCommentForm(${post.id})">Comment</button>
+                        </div>
+                        <div class="comments" id="comments-${post.id}"></div>
+                    `;
+                    container.appendChild(postElement);
+                });
+            } catch (error) {
+                console.error('Error loading posts:', error);
+            }
+        }
+
+        // Comments
+        async function createComment(postId) {
+            const userId = localStorage.getItem('user_id');
+            const content = document.getElementById(`comment-input-${postId}`).value;
+
+            if (!userId) {
+                alert('Please login first');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/posts/${postId}/comments`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        post_id: postId,
+                        user_id: parseInt(userId),
+                        content: content
+                    }),
+                });
+                if (response.ok) {
+                    loadPosts();
+                }
+            } catch (error) {
+                alert('Error creating comment: ' + error);
+            }
+        }
+
+        function showCommentForm(postId) {
+            const commentsSection = document.getElementById(`comments-${postId}`);
+            commentsSection.innerHTML = `
+                <div class="comment-form">
+                    <input type="text" id="comment-input-${postId}" placeholder="Write a comment...">
+                    <button onclick="createComment(${postId})">Submit</button>
+                </div>
+            `;
+        }
+
+        // UI Updates
+        function updateUI(isLoggedIn) {
+            document.getElementById('create-post').style.display = isLoggedIn ? 'block' : 'none';
+            document.getElementById('auth-section').style.display = isLoggedIn ? 'none' : 'block';
+        }
+
+        // Initial load
+        document.addEventListener('DOMContentLoaded', () => {
+            const userId = localStorage.getItem('user_id');
+            updateUI(!!userId);
+            loadPosts();
+        });
+    </script>
+</body>
+</html>
